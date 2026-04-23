@@ -1,0 +1,34 @@
+{
+  "buildTime": "2026-04-23T08:21:15.397Z",
+  "builtWith": {
+    "toolchain": "0.8.7",
+    "types": "0.8.7"
+  },
+  "repository": {
+    "name": "Finebouche Extensions (0.9)",
+    "description": "French Paperback 0.9 extensions published in the 0.9/stable registry layout."
+  },
+  "sources": [
+    {
+      "id": "PunkRecordz",
+      "name": "PunkRecordz",
+      "description": "Extension that pulls content from punkrecordz.com.",
+      "version": "1.0.0-alpha.1",
+      "icon": "icon.png",
+      "language": "fr",
+      "contentRating": "SAFE",
+      "badges": [],
+      "capabilities": [
+        1,
+        4
+      ],
+      "developers": [
+        {
+          "name": "Finebouche",
+          "website": null,
+          "github": "https://github.com/Finebouche"
+        }
+      ]
+    }
+  ]
+}

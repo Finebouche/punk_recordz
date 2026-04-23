@@ -1,0 +1,18 @@
+# Node dependencies
+node_modules/
+
+# Build output generated locally
+dist/
+bundles/
+
+# Coverage / test artifacts
+coverage/
+.nyc_output/
+
+# Editor / IDE files
+.idea/
+.vscode/
+.run/
+
+# OS files
+.DS_Store

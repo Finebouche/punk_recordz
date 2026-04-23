@@ -1,0 +1,11 @@
+{
+  "finebouche-extensions": {
+    "PunkRecordz": {
+      "build_time": "2026-04-23T08:21:15.397Z",
+      "built_with": {
+        "toolchain": "0.8.7",
+        "types": "0.8.7"
+      }
+    }
+  }
+}
