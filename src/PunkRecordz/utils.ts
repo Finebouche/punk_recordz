@@ -24,7 +24,8 @@ export async function fetchText(request: Request): Promise<string> {
 }
 
 export function toAbsoluteImage(thumb: string): string {
-  return `${API_DOMAIN}/images/webp/${thumb}.webp`;
+  const normalizedThumb = thumb.replace(/\.[^.]+$/, "");
+  return `${API_DOMAIN}/images/webp/${normalizedThumb}.webp`;
 }
 
 export function toMangaUrl(mangaId: string): string {
@@ -118,15 +119,17 @@ export function extractChapterNumber(chapterId: string, title: string): number {
 export function parseCatalogue(html: string): CatalogueEntry[] {
   const entries: CatalogueEntry[] = [];
   const seen = new Set<string>();
-  const regex = /"name":"((?:\\.|[^"\\])*)","slug":"([^"]+)","thumb":"([^"]+)"/g;
+  const objectRegex = /{[^{}]*"__typename":"Manga"[^{}]*}/g;
   let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(html)) !== null) {
-    const rawTitle = match[1];
-    const mangaId = match[2];
-    const thumb = match[3];
+  while ((match = objectRegex.exec(html)) !== null) {
+    const block = match[0];
+    const rawTitle = /"name":"((?:\\.|[^"\\])*)"/.exec(block)?.[1];
+    const mangaId = /"slug":"([^"]+)"/.exec(block)?.[1];
+    const thumb = /"thumb":"([^"]+)"/.exec(block)?.[1];
+    const published = /"published":(true|false)/.exec(block)?.[1] === "true";
 
-    if (!rawTitle || !mangaId || !thumb || seen.has(mangaId)) {
+    if (!published || !rawTitle || !mangaId || !thumb || seen.has(mangaId)) {
       continue;
     }
 
