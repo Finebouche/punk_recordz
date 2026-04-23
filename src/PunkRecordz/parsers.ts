@@ -84,20 +84,22 @@ export function normalizeString(value: string): string {
 }
 
 export function parseCatalogue(html: string): CatalogueEntry[] {
+  const normalizedHtml = html
+    .replace(/\\"/g, '"')
+    .replace(/\\\\u0026/g, "&")
+    .replace(/\\u0026/g, "&");
   const entries: CatalogueEntry[] = [];
   const seen = new Set<string>();
   const objectRegex = /{[^{}]*"__typename":"Manga"[^{}]*}/g;
   let match: RegExpExecArray | null;
-
-  while ((match = objectRegex.exec(html)) !== null) {
-    const block = match[0];
-    const rawTitle = /"name":"((?:\\.|[^"\\])*)"/.exec(block)?.[1];
-    const mangaId = /"slug":"([^"]+)"/.exec(block)?.[1];
-    const thumb = /"thumb":"([^"]+)"/.exec(block)?.[1];
-    const published = /"published":(true|false)/.exec(block)?.[1] === "true";
-
+  const pushEntry = (
+    rawTitle: string | undefined,
+    mangaId: string | undefined,
+    thumb: string | undefined,
+    published: boolean,
+  ): void => {
     if (!published || !rawTitle || !mangaId || !thumb || seen.has(mangaId)) {
-      continue;
+      return;
     }
 
     entries.push({
@@ -106,6 +108,45 @@ export function parseCatalogue(html: string): CatalogueEntry[] {
       image: toAbsoluteImage(thumb),
     });
     seen.add(mangaId);
+  };
+
+  while ((match = objectRegex.exec(normalizedHtml)) !== null) {
+    const block = match[0];
+    const rawTitle = /"name":"((?:\\.|[^"\\])*)"/.exec(block)?.[1];
+    const mangaId = /"slug":"([^"]+)"/.exec(block)?.[1];
+    const thumb = /"thumb":"([^"]+)"/.exec(block)?.[1];
+    const published = /"published":(true|false)/.exec(block)?.[1] === "true";
+    pushEntry(rawTitle, mangaId, thumb, published);
+  }
+
+  if (!entries.length) {
+    const marker = '"__typename":"Manga"';
+    const chunks = normalizedHtml.split(marker).slice(1);
+
+    for (const chunk of chunks) {
+      const block = `${marker}${chunk.slice(0, 400)}`;
+      const rawTitle = /"name":"((?:\\.|[^"\\])*)"/.exec(block)?.[1];
+      const mangaId = /"slug":"([^"]+)"/.exec(block)?.[1];
+      const thumb = /"thumb":"([^"]+)"/.exec(block)?.[1];
+      const publishedMatch = /"published":(true|false)/.exec(block)?.[1];
+      const published = publishedMatch ? publishedMatch === "true" : true;
+
+      pushEntry(rawTitle, mangaId, thumb, published);
+    }
+  }
+
+  if (!entries.length) {
+    const looseRegex =
+      /"__typename":"Manga"[\s\S]{0,250}?"name":"((?:\\.|[^"\\])*)"[\s\S]{0,250}?"slug":"([^"]+)"[\s\S]{0,250}?"thumb":"([^"]+)"[\s\S]{0,120}?"published":(true|false)/g;
+
+    while ((match = looseRegex.exec(normalizedHtml)) !== null) {
+      const rawTitle = match[1];
+      const mangaId = match[2];
+      const thumb = match[3];
+      const published = match[4] === "true";
+
+      pushEntry(rawTitle, mangaId, thumb, published);
+    }
   }
 
   if (!entries.length) {

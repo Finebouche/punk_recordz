@@ -7,7 +7,9 @@
   "scripts": {
     "tsc": "tsc",
     "bundle": "paperback-cli bundle",
+    "bundle:debug": "paperback-cli bundle --debug",
     "serve": "paperback-cli serve",
+    "serve:debug": "paperback-cli bundle --debug && paperback-cli serve",
     "logcat": "paperback-cli logcat",
     "dev": "paperback-cli serve --watch",
     "test": "npm run tsc && npm run bundle",
