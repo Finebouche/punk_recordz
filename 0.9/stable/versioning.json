@@ -1,0 +1,30 @@
+{
+  "buildTime": "2026-04-23T09:04:54.590Z",
+  "builtWith": {
+    "toolchain": "1.0.0-alpha.74",
+    "types": "1.0.0-alpha.74"
+  },
+  "repository": {
+    "name": "punk-recordz",
+    "description": "Paperback 0.9 source repository for the PunkRecordz extension."
+  },
+  "sources": [
+    {
+      "name": "PunkRecordz",
+      "description": "Extension that pulls content from punkrecordz.com.",
+      "version": "1.0.0-alpha.1",
+      "icon": "icon.png",
+      "language": "fr",
+      "contentRating": "SAFE",
+      "capabilities": 69,
+      "badges": [],
+      "developers": [
+        {
+          "name": "Finebouche",
+          "github": "https://github.com/Finebouche"
+        }
+      ],
+      "id": "PunkRecordz"
+    }
+  ]
+}
