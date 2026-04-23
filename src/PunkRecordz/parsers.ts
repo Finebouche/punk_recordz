@@ -1,6 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import type { CatalogueEntry } from "./models";
+import { ContentRating, DiscoverSectionType, type Chapter, type SearchResultItem, type SourceManga } from "@paperback/types";
+import type {
+  CatalogueEntry,
+  DiscoverItemType,
+  PunkRecordzChapterDetails,
+  PunkRecordzDiscoverItem,
+  PunkRecordzDiscoverSection,
+  PunkRecordzSectionId,
+} from "./models";
 import { toAbsoluteImage } from "./utils";
 
 function decodeJsonText(value: string): string {
@@ -81,6 +89,178 @@ export function cleanTitle(title: string): string {
 
 export function normalizeString(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+export function extractAuthorFromKeywords(html: string): string | undefined {
+  const keywords = extractMetaContent(html, "name", "keywords");
+  if (!keywords) {
+    return undefined;
+  }
+
+  const candidates = keywords
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => /^[A-ZÀ-ÖØ-Þ][\p{L}.'-]+(?:\s+[A-ZÀ-ÖØ-Þ][\p{L}.'-]+)+$/u.test(part));
+
+  return candidates.at(-1);
+}
+
+export class PunkRecordzParser {
+  buildDiscoverSections(showCatalogueOnHome: boolean): PunkRecordzDiscoverSection[] {
+    const sections: PunkRecordzDiscoverSection[] = [
+      {
+        id: "latest",
+        title: "Dernieres sorties",
+        type: DiscoverSectionType.featured,
+      },
+    ];
+
+    if (showCatalogueOnHome) {
+      sections.push({
+        id: "catalogue",
+        title: "Catalogue",
+        type: DiscoverSectionType.simpleCarousel,
+      });
+    }
+
+    return sections;
+  }
+
+  buildDiscoverItems(
+    sectionId: PunkRecordzSectionId,
+    catalogue: CatalogueEntry[],
+    homeHtml: string,
+  ): PunkRecordzDiscoverItem[] {
+    if (sectionId === "latest") {
+      const latestIds = extractLatestUpdatedMangaIds(homeHtml);
+      return latestIds
+        .map((mangaId) => catalogue.find((entry) => entry.mangaId === mangaId))
+        .filter((entry): entry is CatalogueEntry => entry !== undefined)
+        .map((entry) => this.toDiscoverItem(entry, "featuredCarouselItem"));
+    }
+
+    return catalogue.map((entry) => this.toDiscoverItem(entry, "simpleCarouselItem"));
+  }
+
+  buildSearchResults(catalogue: CatalogueEntry[], query: string): SearchResultItem[] {
+    const search = normalizeString(query);
+    return catalogue
+      .filter((entry) => !search || normalizeString(entry.title).includes(search))
+      .map((entry) => ({
+        mangaId: entry.mangaId,
+        title: entry.title,
+        imageUrl: entry.image,
+        contentRating: ContentRating.EVERYONE,
+      }));
+  }
+
+  parseMangaDetails(
+    mangaId: string,
+    html: string,
+    fallbackEntry: CatalogueEntry | undefined,
+    fallbackThumbnailUrl: string,
+  ): SourceManga {
+    const primaryTitle = cleanTitle(
+      extractTagContent(html, "title") ?? fallbackEntry?.title ?? mangaId,
+    );
+    const thumbnailUrl =
+      extractMetaContent(html, "property", "og:image") ?? fallbackEntry?.image ?? fallbackThumbnailUrl;
+    const synopsis =
+      extractMetaContent(html, "name", "description") ?? "Aucune description disponible.";
+    const creator = extractAuthorFromKeywords(html);
+
+    return {
+      mangaId,
+      mangaInfo: {
+        thumbnailUrl,
+        synopsis,
+        primaryTitle,
+        secondaryTitles: [],
+        contentRating: ContentRating.EVERYONE,
+        author: creator,
+        artist: creator,
+        status: "Ongoing",
+        additionalInfo: {
+          format: "Scan couleur",
+        },
+        artworkUrls: [thumbnailUrl],
+      },
+    };
+  }
+
+  parseChapterList(html: string, sourceManga: SourceManga): Chapter[] {
+    const chapters: Chapter[] = [];
+    const seen = new Set<string>();
+    const regex = new RegExp(
+      `href="/mangas/${sourceManga.mangaId}/([^"?#/]+)"[^>]*>([^<]+)<`,
+      "g",
+    );
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(html)) !== null) {
+      const chapterId = match[1]?.trim();
+      const title = match[2]?.trim() ?? "";
+
+      if (!chapterId || seen.has(chapterId)) {
+        continue;
+      }
+
+      chapters.push({
+        chapterId,
+        sourceManga,
+        langCode: "FR",
+        chapNum: extractChapterNumber(chapterId, title),
+        title: title || undefined,
+      });
+      seen.add(chapterId);
+    }
+
+    if (!chapters.length) {
+      throw new Error(`Couldn't find any chapters for mangaId: ${sourceManga.mangaId}!`);
+    }
+
+    return chapters;
+  }
+
+  parseChapterDetails(html: string, chapter: Chapter): PunkRecordzChapterDetails {
+    const regex =
+      /<img[^>]+alt="[^"]*-page-[^"]*"[^>]+src="(https:\/\/api\.punkrecordz\.com\/images\/[^"]+)"/g;
+    const pages: string[] = [];
+    const seen = new Set<string>();
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(html)) !== null) {
+      const page = match[1]?.trim();
+      if (!page || seen.has(page)) {
+        continue;
+      }
+
+      pages.push(page);
+      seen.add(page);
+    }
+
+    if (!pages.length) {
+      throw new Error(
+        `Couldn't find any pages for mangaId: ${chapter.sourceManga.mangaId} chapterId: ${chapter.chapterId}!`,
+      );
+    }
+
+    return {
+      id: chapter.chapterId,
+      mangaId: chapter.sourceManga.mangaId,
+      pages,
+    };
+  }
+
+  private toDiscoverItem(entry: CatalogueEntry, type: DiscoverItemType): PunkRecordzDiscoverItem {
+    return {
+      type,
+      mangaId: entry.mangaId,
+      title: entry.title,
+      imageUrl: entry.image,
+      contentRating: ContentRating.EVERYONE,
+    };
+  }
 }
 
 export function parseCatalogue(html: string): CatalogueEntry[] {

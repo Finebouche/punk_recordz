@@ -18,8 +18,7 @@ export async function fetchText(request: Request): Promise<string> {
 }
 
 export function toAbsoluteImage(thumb: string): string {
-  const normalizedThumb = thumb.replace(/\.[^.]+$/, "");
-  return `${API_DOMAIN}/images/webp/${normalizedThumb}.webp`;
+  return `${API_DOMAIN}/images/webp/${thumb}.webp`;
 }
 
 export function toMangaUrl(mangaId: string): string {
