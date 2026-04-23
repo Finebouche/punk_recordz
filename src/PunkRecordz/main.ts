@@ -4,6 +4,7 @@ import {
   BasicRateLimiter,
   ContentRating,
   DiscoverSectionType,
+  type Form,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -17,27 +18,33 @@ import {
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
+  type SettingsFormProviding,
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
+import { SettingsForm } from "./forms";
+import { getShowCatalogueOnHome } from "./models";
 import { MainInterceptor } from "./network";
 import {
   DOMAIN,
   MANGA_PATH,
+  fetchText,
+  toChapterUrl,
+  toMangaUrl,
+} from "./utils";
+import type { CatalogueEntry } from "./models";
+import {
   cleanTitle,
   extractChapterNumber,
   extractLatestUpdatedMangaIds,
   extractMetaContent,
   extractTagContent,
-  fetchText,
   normalizeString,
   parseCatalogue,
-  toChapterUrl,
-  toMangaUrl,
-  type CatalogueEntry,
-} from "./utils";
+} from "./parsers";
 
 type PunkRecordzImplementation = Extension &
+  SettingsFormProviding &
   DiscoverSectionProviding &
   SearchResultsProviding &
   MangaProviding &
@@ -57,19 +64,28 @@ export class PunkRecordzExtension implements PunkRecordzImplementation {
     this.mainInterceptor.registerInterceptor();
   }
 
+  async getSettingsForm(): Promise<Form> {
+    return new SettingsForm();
+  }
+
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    return [
+    const sections: DiscoverSection[] = [
       {
         id: "latest",
         title: "Dernieres sorties",
         type: DiscoverSectionType.simpleCarousel,
       },
-      {
+    ];
+
+    if (getShowCatalogueOnHome()) {
+      sections.push({
         id: "catalogue",
         title: "Catalogue",
         type: DiscoverSectionType.simpleCarousel,
-      },
-    ];
+      });
+    }
+
+    return sections;
   }
 
   async getDiscoverSectionItems(
