@@ -1,20 +1,23 @@
 # PunkRecordz
 
-This repository contains the Paperback 0.9 extension bundle and registry metadata for the `PunkRecordz` source.
+Paperback 0.9 source repository for the PunkRecordz extension, organized to match the Inkdex template-style structure.
 
-## Contents
+## Structure
 
-- `0.9/stable/PunkRecordz/index.js`: bundled extension source
-- `0.9/stable/metadata.json`: registry metadata for the source
-- `0.9/stable/versioning.json`: build/version manifest
+- `src/PunkRecordz/`: TypeScript source for the extension
+- `src/PunkRecordz/pbconfig.ts`: extension metadata used by the toolchain
+- `src/PunkRecordz/main.ts`: main extension implementation
+- `src/PunkRecordz/static/icon.png`: source icon asset
+- `0.9/stable/`: previously bundled registry output kept as a reference artifact
 
 ## Development
 
 ```bash
 npm install
-npm run bundle
+npm test
+npm run serve
 ```
 
-## Publish
+## Notes
 
-Commit the generated files under `0.9/stable/` and push the repository to GitHub Pages or the host you use for your Paperback source list.
+The new source tree was reconstructed from the currently bundled `0.9/stable/PunkRecordz/index.js` so the repo can be migrated toward the standard Inkdex contribution workflow.

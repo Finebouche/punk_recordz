@@ -2,15 +2,24 @@
   "name": "punk-recordz",
   "version": "1.0.0",
   "private": true,
-  "description": "Paperback 0.9 extension bundle for PunkRecordz.",
+  "description": "Paperback 0.9 source repository for the PunkRecordz extension.",
+  "type": "module",
   "scripts": {
-    "bundle": "npx paperback bundle",
-    "serve": "npx paperback serve",
-    "test": "npx paperback test"
+    "tsc": "tsc",
+    "bundle": "paperback-cli bundle",
+    "serve": "paperback-cli serve",
+    "logcat": "paperback-cli logcat",
+    "dev": "paperback-cli serve --watch",
+    "test": "npm run tsc && npm run bundle",
+    "prepare": "husky"
   },
   "author": "Finebouche",
   "license": "GPL-3.0-or-later",
+  "repositoryName": "PunkRecordz (0.9)",
   "devDependencies": {
-    "@paperback/toolchain": "^1.0.0-alpha.57"
+    "@paperback/toolchain": "^1.0.0-alpha.74",
+    "@paperback/types": "^1.0.0-alpha.74",
+    "husky": "^9.1.7",
+    "typescript": "^5.4.5"
   }
 }
